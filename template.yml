@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Globals:
+    Function:
+        Runtime: nodejs8.10
+Resources:
+  Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: Allow
+            Action: 'sts:AssumeRole'
+            Principal:
+              Service: lambda.amazonaws.com
+      Policies:
+        - PolicyName: UpdateUserPoolClient
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement: 
+              -
+                Effect: Allow
+                Action: 'cognito-idp:UpdateUserPoolClient'
+                Resource: 'arn:aws:cognito-idp:*:*:userpool/*'
+        - PolicyName: ManageUserPoolDomain
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement: 
+              -
+                Effect: Allow
+                Action: 'cognito-idp:CreateUserPoolDomain'
+                Resource: 'arn:aws:cognito-idp:*:*:userpool/*'
+              -
+                Effect: Allow
+                Action: 'cognito-idp:DeleteUserPoolDomain'
+                Resource: 'arn:aws:cognito-idp:*:*:userpool/*'
+              -
+                Effect: Allow
+                Action: 'cognito-idp:DescribeUserPoolDomain'
+                Resource: '*'
+        - PolicyName: InvokeLambdaFunction
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement: 
+              -
+                Effect: Allow
+                Action: 'lambda:InvokeFunction'
+                Resource: 'arn:aws:lambda:*:*:function:*'
+
+  CloudFormationSendResponse:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambdas/CloudFormationSendResponse/index.handler
+
+  CFCognitoUserPoolDomain:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambdas/CloudFormationCognitoUserPoolDomain.handler
+    DependsOn: CloudFormationSendResponse
+
+  AppUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      # Generate a name based on the stage
+      UserPoolName: dev-user-pool
+      # Set email as an alias
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+  AppUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      # Generate an app client name based on the stage
+      ClientName: dev-user-pool-client
+      UserPoolId: !Ref AppUserPool
+      ExplicitAuthFlows:
+        - ADMIN_NO_SRP_AUTH
+      GenerateSecret: false
+
+  UserPoolDomain:
+    Type: 'Custom::CognitoUserPoolDomain'
+    Properties:
+      ServiceToken: !GetAtt CFCognitoUserPoolDomain.Arn
+      UserPoolId: !Ref AppUserPool
+      Domain: 'userpool-himanshu-sample-01'
+
+
+Parameters:
+  ParamProjectName:
+    Type: String
+  ParamENV:
+    Type: String
+  ParamBucket:
+    Type: String
+
+Outputs:
+  UserPoolId:
+    Value:
+      Ref: AppUserPool
+
+  UserPoolClientId:
+    Value:
+      Ref: AppUserPoolClient
