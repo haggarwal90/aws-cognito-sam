@@ -15,6 +15,16 @@ Resources:
           Principal:
             Service: lambda.amazonaws.com
       Policies:
+      - PolicyName: WriteCloudWatchLogs
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
       - PolicyName: UpdateUserPoolClient
         PolicyDocument:
           Version: '2012-10-17'
@@ -28,7 +38,9 @@ Resources:
           Statement:
           - Effect: Allow
             Action: cognito-idp:CreateUserPoolDomain
-            Resource: arn:aws:cognito-idp:*:*:userpool/*
+            Resource:
+            - arn:aws:cognito-idp:us-west-2:934150036772:userpool/*
+            - arn:aws:cognito-idp:*:*:userpool/*
           - Effect: Allow
             Action: cognito-idp:DeleteUserPoolDomain
             Resource: arn:aws:cognito-idp:*:*:userpool/*
@@ -41,22 +53,24 @@ Resources:
           Statement:
           - Effect: Allow
             Action: lambda:InvokeFunction
-            Resource: arn:aws:lambda:*:*:function:*
+            Resource:
+            - arn:aws:lambda:us-west-2:934150036772:function:CloudFormationSendResponse
+            - arn:aws:lambda:*:*:function:*
   CloudFormationSendResponse:
     Type: AWS::Serverless::Function
     Properties:
       Handler: lambdas/CloudFormationSendResponse/index.handler
-      CodeUri: s3://cognito-bucket-temp2/e247694519366d8c23830f3ae209c7a3
+      CodeUri: s3://cognito-bucket-temp5/778e353a774eb810c732a451daf48034
   CFCognitoUserPoolDomain:
     Type: AWS::Serverless::Function
     Properties:
       Handler: lambdas/CloudFormationCognitoUserPoolDomain.handler
-      CodeUri: s3://cognito-bucket-temp2/e247694519366d8c23830f3ae209c7a3
+      CodeUri: s3://cognito-bucket-temp5/778e353a774eb810c732a451daf48034
     DependsOn: CloudFormationSendResponse
   AppUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: dev-user-pool
+      UserPoolName: dev4-user-pool
       UsernameAttributes:
       - email
       AutoVerifiedAttributes:
@@ -64,7 +78,7 @@ Resources:
   AppUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: dev-user-pool-client
+      ClientName: dev4-user-pool-client
       UserPoolId:
         Ref: AppUserPool
       ExplicitAuthFlows:

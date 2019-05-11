@@ -31,7 +31,9 @@ Resources:
               -
                 Effect: Allow
                 Action: 'cognito-idp:CreateUserPoolDomain'
-                Resource: 'arn:aws:cognito-idp:*:*:userpool/*'
+                Resource: 
+                  - 'arn:aws:cognito-idp:us-west-2:934150036772:userpool/*'
+                  - 'arn:aws:cognito-idp:*:*:userpool/*'
               -
                 Effect: Allow
                 Action: 'cognito-idp:DeleteUserPoolDomain'
@@ -64,7 +66,7 @@ Resources:
     Type: AWS::Cognito::UserPool
     Properties:
       # Generate a name based on the stage
-      UserPoolName: dev-user-pool
+      UserPoolName: dev4-user-pool
       # Set email as an alias
       UsernameAttributes:
         - email
@@ -74,7 +76,7 @@ Resources:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       # Generate an app client name based on the stage
-      ClientName: dev-user-pool-client
+      ClientName: dev4-user-pool-client
       UserPoolId: !Ref AppUserPool
       ExplicitAuthFlows:
         - ADMIN_NO_SRP_AUTH

@@ -1,9 +1,9 @@
 .DEFAULT_GOAL := help
 
-STACK_NAME ?= aws-cognito-temp2
-PROJECT_NAME ?= aws-sam-cog-temp2
+STACK_NAME ?= aws-cognito-temp5
+PROJECT_NAME ?= aws-sam-cog-temp5
 ENV ?= unstable
-AWS_BUCKET_NAME ?= cognito-bucket-temp2
+AWS_BUCKET_NAME ?= cognito-bucket-temp5
 REGION ?= us-west-2
 
 help:
