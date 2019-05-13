@@ -4,9 +4,10 @@ Globals:
     Function:
         Runtime: nodejs8.10
 Resources:
-  Role:
+  LambdaCognito:
     Type: 'AWS::IAM::Role'
     Properties:
+      RoleName: LambdaCognito
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -16,57 +17,69 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
       Policies:
-        - PolicyName: UpdateUserPoolClient
+        - PolicyName: WriteCloudWatchLogs
           PolicyDocument: 
             Version: '2012-10-17'
             Statement: 
               -
                 Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+        - PolicyName: UpdateUserPoolClient
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement: 
+              - Effect: Allow
                 Action: 'cognito-idp:UpdateUserPoolClient'
                 Resource: 'arn:aws:cognito-idp:*:*:userpool/*'
         - PolicyName: ManageUserPoolDomain
           PolicyDocument: 
             Version: '2012-10-17'
             Statement: 
-              -
-                Effect: Allow
+              - Effect: Allow
                 Action: 'cognito-idp:CreateUserPoolDomain'
                 Resource: 
                   - 'arn:aws:cognito-idp:us-west-2:934150036772:userpool/*'
                   - 'arn:aws:cognito-idp:*:*:userpool/*'
-              -
-                Effect: Allow
+              - Effect: Allow
                 Action: 'cognito-idp:DeleteUserPoolDomain'
                 Resource: 'arn:aws:cognito-idp:*:*:userpool/*'
-              -
-                Effect: Allow
+              - Effect: Allow
                 Action: 'cognito-idp:DescribeUserPoolDomain'
                 Resource: '*'
         - PolicyName: InvokeLambdaFunction
           PolicyDocument: 
             Version: '2012-10-17'
             Statement: 
-              -
-                Effect: Allow
+              - Effect: Allow
                 Action: 'lambda:InvokeFunction'
-                Resource: 'arn:aws:lambda:*:*:function:*'
-
-  CloudFormationSendResponse:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      Handler: lambdas/CloudFormationSendResponse/index.handler
-
+                Resource:
+                  - 'arn:aws:lambda:*:*:function:*'
   CFCognitoUserPoolDomain:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: lambdas/CloudFormationCognitoUserPoolDomain.handler
+      Role: !GetAtt LambdaCognito.Arn
     DependsOn: CloudFormationSendResponse
-
+  CFCognitoUserPoolClientSettings:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambdas/CloudFormationCognitoUserPoolClientSettings.handler
+      Role: !GetAtt LambdaCognito.Arn
+    DependsOn: CloudFormationSendResponse
+  CloudFormationSendResponse:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambdas/CloudFormationSendResponse/index.handler
+      Role: !GetAtt LambdaCognito.Arn
   AppUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
       # Generate a name based on the stage
-      UserPoolName: dev4-user-pool
+      UserPoolName: dev-user-pool
       # Set email as an alias
       UsernameAttributes:
         - email
@@ -76,7 +89,7 @@ Resources:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       # Generate an app client name based on the stage
-      ClientName: dev4-user-pool-client
+      ClientName: dev-user-pool-client
       UserPoolId: !Ref AppUserPool
       ExplicitAuthFlows:
         - ADMIN_NO_SRP_AUTH
@@ -87,7 +100,22 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CFCognitoUserPoolDomain.Arn
       UserPoolId: !Ref AppUserPool
-      Domain: 'userpool-himanshu-sample-01'
+      Domain: 'userpool-himanshu-sample-cog'
+  UserPoolClientSettings:
+    Type: 'Custom::CognitoUserPoolClientSettings'
+    Properties:
+      ServiceToken: !GetAtt CFCognitoUserPoolClientSettings.Arn
+      UserPoolId: !Ref AppUserPool
+      UserPoolClientId: !Ref AppUserPoolClient
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURL: 'https://www.amazon.com'
+      LogoutURL: 'https://www.google.com'
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
 
 
 Parameters:

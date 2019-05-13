@@ -1,9 +1,9 @@
 .DEFAULT_GOAL := help
 
-STACK_NAME ?= aws-cognito-temp5
-PROJECT_NAME ?= aws-sam-cog-temp5
+STACK_NAME ?= aws-cognito-sam
+PROJECT_NAME ?= aws-sam-cognito
 ENV ?= unstable
-AWS_BUCKET_NAME ?= cognito-bucket-temp5
+AWS_BUCKET_NAME ?= cognito-bucket-sam
 REGION ?= us-west-2
 
 help:
@@ -31,7 +31,7 @@ deploy:
 	aws cloudformation deploy \
   --template-file package.yml \
   --stack-name $(STACK_NAME) \
-  --capabilities CAPABILITY_IAM	\
+  --capabilities CAPABILITY_NAMED_IAM	\
 	--parameter-overrides \
 			ParamProjectName=$(PROJECT_NAME) \
 			ParamENV=$(ENV)	\

@@ -4,9 +4,10 @@ Globals:
   Function:
     Runtime: nodejs8.10
 Resources:
-  Role:
+  LambdaCognito:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: LambdaCognito
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -54,23 +55,40 @@ Resources:
           - Effect: Allow
             Action: lambda:InvokeFunction
             Resource:
-            - arn:aws:lambda:us-west-2:934150036772:function:CloudFormationSendResponse
             - arn:aws:lambda:*:*:function:*
-  CloudFormationSendResponse:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: lambdas/CloudFormationSendResponse/index.handler
-      CodeUri: s3://cognito-bucket-temp5/778e353a774eb810c732a451daf48034
   CFCognitoUserPoolDomain:
     Type: AWS::Serverless::Function
     Properties:
       Handler: lambdas/CloudFormationCognitoUserPoolDomain.handler
-      CodeUri: s3://cognito-bucket-temp5/778e353a774eb810c732a451daf48034
+      Role:
+        Fn::GetAtt:
+        - LambdaCognito
+        - Arn
+      CodeUri: s3://cognito-bucket-sam/89618935ffe8668d3a179f904a688c5b
     DependsOn: CloudFormationSendResponse
+  CFCognitoUserPoolClientSettings:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambdas/CloudFormationCognitoUserPoolClientSettings.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaCognito
+        - Arn
+      CodeUri: s3://cognito-bucket-sam/89618935ffe8668d3a179f904a688c5b
+    DependsOn: CloudFormationSendResponse
+  CloudFormationSendResponse:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambdas/CloudFormationSendResponse/index.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaCognito
+        - Arn
+      CodeUri: s3://cognito-bucket-sam/89618935ffe8668d3a179f904a688c5b
   AppUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: dev4-user-pool
+      UserPoolName: dev-user-pool
       UsernameAttributes:
       - email
       AutoVerifiedAttributes:
@@ -78,7 +96,7 @@ Resources:
   AppUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: dev4-user-pool-client
+      ClientName: dev-user-pool-client
       UserPoolId:
         Ref: AppUserPool
       ExplicitAuthFlows:
@@ -93,7 +111,27 @@ Resources:
         - Arn
       UserPoolId:
         Ref: AppUserPool
-      Domain: userpool-himanshu-sample-01
+      Domain: userpool-himanshu-sample-cog
+  UserPoolClientSettings:
+    Type: Custom::CognitoUserPoolClientSettings
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - CFCognitoUserPoolClientSettings
+        - Arn
+      UserPoolId:
+        Ref: AppUserPool
+      UserPoolClientId:
+        Ref: AppUserPoolClient
+      SupportedIdentityProviders:
+      - COGNITO
+      CallbackURL: https://www.amazon.com
+      LogoutURL: https://www.google.com
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+      - code
+      AllowedOAuthScopes:
+      - openid
 Parameters:
   ParamProjectName:
     Type: String
